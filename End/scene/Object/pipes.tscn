@@ -1,0 +1,31 @@
+[gd_scene load_steps=4 format=3 uid="uid://cqswt1edl0x7"]
+
+[ext_resource type="Script" path="res://scene/Object/pipe.gd" id="1_32et0"]
+[ext_resource type="PackedScene" uid="uid://bdtxqgs0pg28r" path="res://scene/Object/pipe.tscn" id="1_a3k70"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ykev5"]
+size = Vector2(5, 115)
+
+[node name="Pipes" type="CharacterBody2D" groups=["pipes"]]
+script = ExtResource("1_32et0")
+
+[node name="top_pipe" parent="." instance=ExtResource("1_a3k70")]
+position = Vector2(0, -224)
+rotation = 3.14159
+
+[node name="bottom_pipe" parent="." instance=ExtResource("1_a3k70")]
+position = Vector2(0, 216)
+
+[node name="VisibleOnScreenNotifier2D" type="VisibleOnScreenNotifier2D" parent="."]
+position = Vector2(22.5, -4)
+scale = Vector2(0.25, 6)
+
+[node name="Area2D" type="Area2D" parent="."]
+position = Vector2(10, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+position = Vector2(12.5, -4)
+shape = SubResource("RectangleShape2D_ykev5")
+
+[connection signal="screen_exited" from="VisibleOnScreenNotifier2D" to="." method="_on_screen_exited"]
+[connection signal="area_exited" from="Area2D" to="." method="_on_area_2d_area_exited"]

@@ -1,0 +1,11 @@
+[config]
+
+name="GodotAdMob"
+binary_type="local"
+binary="GodotAdMob.aar"
+
+[dependencies]
+
+local=[]
+remote=["com.google.android.gms:play-services-ads:22.6.0"]
+custom_maven_repos=[]

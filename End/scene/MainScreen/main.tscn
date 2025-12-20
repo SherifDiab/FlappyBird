@@ -1,0 +1,59 @@
+[gd_scene load_steps=9 format=3 uid="uid://ce28mlre855iy"]
+
+[ext_resource type="PackedScene" uid="uid://bcxwocaa28as2" path="res://scene/UserInterface/bg.tscn" id="1_juocb"]
+[ext_resource type="Script" path="res://scene/MainScreen/main.gd" id="1_nd6em"]
+[ext_resource type="PackedScene" uid="uid://b6hn0lt16u10x" path="res://scene/Actor/player.tscn" id="2_5qdqs"]
+[ext_resource type="Script" path="res://scene/Object/pipe_spawner.gd" id="2_70y0a"]
+[ext_resource type="Texture2D" uid="uid://c18bql8om3xdq" path="res://assets/Sprite/FlappyAsset/background-1.png" id="2_gg4uw"]
+[ext_resource type="AudioStream" uid="uid://cfhkt14igqlqk" path="res://assets/Music/point.ogg" id="4_w77pv"]
+[ext_resource type="PackedScene" uid="uid://bfmhskpw33l7c" path="res://scene/UserInterface/hud.tscn" id="6_c8l2m"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qm4fg"]
+size = Vector2(288, 64)
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_nd6em")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+layer = -102
+
+[node name="Sprite2D" type="Sprite2D" parent="CanvasLayer"]
+position = Vector2(144, 256)
+texture = ExtResource("2_gg4uw")
+
+[node name="pipe_spawner" type="Node2D" parent="CanvasLayer"]
+position = Vector2(360, 192)
+script = ExtResource("2_70y0a")
+
+[node name="Timer" type="Timer" parent="CanvasLayer/pipe_spawner"]
+wait_time = 1.5
+
+[node name="PointScored" type="AudioStreamPlayer2D" parent="CanvasLayer/pipe_spawner"]
+stream = ExtResource("4_w77pv")
+attenuation = 3.73213
+
+[node name="BG" parent="." instance=ExtResource("1_juocb")]
+
+[node name="StaticBody2D" type="StaticBody2D" parent="BG"]
+position = Vector2(152, 440)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BG/StaticBody2D"]
+position = Vector2(-8, -8)
+shape = SubResource("RectangleShape2D_qm4fg")
+
+[node name="Player" parent="." instance=ExtResource("2_5qdqs")]
+position = Vector2(135, 192)
+
+[node name="HUD" parent="." instance=ExtResource("6_c8l2m")]
+layout_mode = 1
+
+[connection signal="score_updated" from="CanvasLayer/pipe_spawner" to="HUD" method="_on_score_updated"]
+[connection signal="timeout" from="CanvasLayer/pipe_spawner/Timer" to="CanvasLayer/pipe_spawner" method="_on_timer_timeout"]
+[connection signal="gameover" from="Player" to="." method="_on_gameover"]
+[connection signal="startGame" from="HUD" to="." method="_on_start_game"]
