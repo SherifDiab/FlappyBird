@@ -1,6 +1,6 @@
 # AdMob Integration Setup Guide
 
-This Flappy Bird game includes AdMob integration for displaying banner and interstitial ads. Follow this guide to set up AdMob for your Android/iOS builds.
+This Flappy Bird game includes AdMob integration using the [poing-studios Godot AdMob Plugin](https://github.com/poing-studios/godot-admob-plugin).
 
 ## Current Ad Configuration
 
@@ -8,7 +8,11 @@ The game displays:
 - **Banner Ad**: Shown at the bottom of the screen during gameplay
 - **Interstitial Ad**: Shown after each game round (when the player dies)
 
-## Setup Instructions
+## Plugin Already Installed
+
+The AdMob plugin is already installed in `addons/admob/`. The Android plugin files are in `android/plugins/`.
+
+## Setup Instructions for Production
 
 ### 1. Get AdMob Account and App IDs
 
@@ -22,17 +26,7 @@ The game displays:
    - **Banner Ad Unit ID** (format: `ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX`)
    - **Interstitial Ad Unit ID** (format: `ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX`)
 
-### 2. Install Godot AdMob Plugin
-
-For Godot 4.x, download the AdMob plugin:
-- GitHub: [https://github.com/poing-studios/godot-admob-plugin](https://github.com/poing-studios/godot-admob-plugin)
-
-Installation:
-1. Download the latest release for your Godot version
-2. Extract the `addons` folder to your project root
-3. Enable the plugin in Project Settings > Plugins
-
-### 3. Update Ad Unit IDs
+### 2. Update Ad Unit IDs
 
 Edit `autoload/AdMobManager.gd` and replace the test IDs with your production IDs:
 
@@ -44,31 +38,22 @@ const INTERSTITIAL_AD_UNIT_ID_ANDROID: String = "ca-app-pub-YOUR_INTERSTITIAL_ID
 const INTERSTITIAL_AD_UNIT_ID_IOS: String = "ca-app-pub-YOUR_INTERSTITIAL_ID"
 ```
 
-### 4. Update Android Manifest
+### 3. Update Android Manifest
 
-Edit `android/build/AndroidManifest.xml` and replace the test App ID:
+Edit `android/build/AndroidManifest.xml` and replace the test App ID with your production App ID:
 
 ```xml
 <meta-data
     android:name="com.google.android.gms.ads.APPLICATION_ID"
-    android:value="ca-app-pub-YOUR_APP_ID" />
+    android:value="ca-app-pub-YOUR_APP_ID"/>
 ```
 
-### 5. Disable Test Mode for Production
-
-In `autoload/AdMobManager.gd`, change the test mode setting:
-
-```gdscript
-# Set to false for production builds
-var is_test_mode: bool = false
-```
-
-### 6. Export for Android
+### 4. Export for Android
 
 1. In Godot, go to Project > Export
 2. Select the Android preset
-3. Enable "Use Gradle Build" in the export options
-4. Make sure the AdMob plugin is enabled
+3. Ensure "Use Gradle Build" is enabled
+4. The AdMob plugin should already be enabled (check `plugins/AdMob=true` in export settings)
 5. Export the APK/AAB
 
 ## Test Ad Unit IDs (Development)
@@ -85,20 +70,54 @@ The current configuration uses Google's official test IDs:
 
 **Note**: Always use test IDs during development. Using production IDs during development may result in account suspension.
 
+## Plugin API Usage
+
+The game uses the poing-studios AdMob plugin API:
+
+### Banner Ads
+```gdscript
+# Load and show banner at bottom
+AdMobManager.load_banner(AdPosition.Values.BOTTOM)
+
+# Hide/show/destroy
+AdMobManager.hide_banner()
+AdMobManager.show_banner()
+AdMobManager.destroy_banner()
+```
+
+### Interstitial Ads
+```gdscript
+# Load interstitial (done automatically)
+AdMobManager.load_interstitial()
+
+# Show when ready
+AdMobManager.show_interstitial()
+
+# Check if loaded
+if AdMobManager.is_interstitial_loaded():
+    AdMobManager.show_interstitial()
+```
+
 ## Troubleshooting
 
 ### Ads Not Showing
 
 1. Check if the device has internet connection
-2. Verify AdMob plugin is properly installed
-3. Check Godot output for AdMob-related logs
-4. Ensure you're testing on a real device (not emulator)
+2. Verify you're testing on a real device (not emulator)
+3. Check Godot output for AdMob-related logs (prefixed with `[AdMob]`)
+4. Ensure the AdMob plugin is enabled in export settings
 
 ### Build Errors
 
-1. Make sure Gradle build is enabled
+1. Make sure Gradle build is enabled in export settings
 2. Verify Android SDK and build tools are installed
-3. Check that Google Play Services is available
+3. Check that the `.aar` files exist in `android/plugins/poing-godot-admob-libs/`
+
+### Invalid Plugin Config Error
+
+If you see "Invalid plugin config file" error, make sure only the valid plugin files exist in `android/plugins/`:
+- `poing-godot-admob-ads.gdap`
+- `poing-godot-admob-libs/` folder with `.aar` files
 
 ## AdMob Policy Compliance
 
@@ -108,12 +127,12 @@ Remember to:
 - Don't place ads where accidental clicks may occur
 - Follow all [AdMob program policies](https://support.google.com/admob/answer/6128543)
 
-## Files Modified for AdMob Integration
+## Files for AdMob Integration
 
+- `addons/admob/` - poing-studios AdMob plugin
 - `autoload/AdMobManager.gd` - AdMob singleton manager
 - `scene/MainScreen/main.gd` - Banner ad initialization
 - `scene/UserInterface/hud.gd` - Interstitial ad after game over
-- `project.godot` - Autoload configuration
 - `android/build/AndroidManifest.xml` - AdMob App ID
-- `android/plugins/GodotAdMob.gdap` - Plugin definition
-- `export_presets.cfg` - Export configuration
+- `android/plugins/poing-godot-admob-ads.gdap` - Plugin definition
+- `android/plugins/poing-godot-admob-libs/` - Plugin AAR files

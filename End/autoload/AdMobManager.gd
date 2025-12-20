@@ -1,14 +1,14 @@
 extends Node
 
 # AdMob Manager Singleton
-# Handles banner and interstitial ads for the game
-# Requires the Godot AdMob Plugin to be installed for Android/iOS exports
+# Uses the poing-studios Godot AdMob Plugin
+# https://github.com/poing-studios/godot-admob-plugin
 
 # Signals
 signal banner_loaded
-signal banner_failed_to_load(error_code: int)
+signal banner_failed_to_load(error_message: String)
 signal interstitial_loaded
-signal interstitial_failed_to_load(error_code: int)
+signal interstitial_failed_to_load(error_message: String)
 signal interstitial_closed
 
 # Ad Unit IDs (Replace with your actual AdMob IDs for production)
@@ -18,47 +18,54 @@ const BANNER_AD_UNIT_ID_IOS: String = "ca-app-pub-3940256099942544/2934735716"
 const INTERSTITIAL_AD_UNIT_ID_ANDROID: String = "ca-app-pub-3940256099942544/1033173712"
 const INTERSTITIAL_AD_UNIT_ID_IOS: String = "ca-app-pub-3940256099942544/4411468910"
 
-# AdMob plugin reference
-var _admob = null
-var _is_admob_available: bool = false
-var _is_banner_loaded: bool = false
-var _is_interstitial_loaded: bool = false
-var _banner_visible: bool = false
+# Ad references
+var _ad_view: AdView = null
+var _interstitial_ad: InterstitialAd = null
 
-# Banner position constants
-enum BannerPosition { TOP, BOTTOM }
-var current_banner_position: int = BannerPosition.BOTTOM
+# Callbacks
+var _ad_listener: AdListener
+var _interstitial_ad_load_callback: InterstitialAdLoadCallback
+var _full_screen_content_callback: FullScreenContentCallback
 
 
 func _ready() -> void:
-	_initialize_admob()
+	_setup_callbacks()
+	# Pre-load interstitial ad
+	load_interstitial()
 
 
-func _initialize_admob() -> void:
-	# Check if AdMob plugin is available (only on Android/iOS)
-	if Engine.has_singleton("AdMob"):
-		_admob = Engine.get_singleton("AdMob")
-		_is_admob_available = true
+func _setup_callbacks() -> void:
+	# Banner ad listener
+	_ad_listener = AdListener.new()
+	_ad_listener.on_ad_loaded = _on_banner_loaded
+	_ad_listener.on_ad_failed_to_load = _on_banner_failed_to_load
+	_ad_listener.on_ad_clicked = func(): print("[AdMob] Banner clicked")
+	_ad_listener.on_ad_opened = func(): print("[AdMob] Banner opened")
+	_ad_listener.on_ad_closed = func(): print("[AdMob] Banner closed")
+	_ad_listener.on_ad_impression = func(): print("[AdMob] Banner impression")
 
-		# Connect signals
-		_admob.connect("banner_loaded", _on_banner_loaded)
-		_admob.connect("banner_failed_to_load", _on_banner_failed_to_load)
-		_admob.connect("interstitial_loaded", _on_interstitial_loaded)
-		_admob.connect("interstitial_failed_to_load", _on_interstitial_failed_to_load)
-		_admob.connect("interstitial_closed", _on_interstitial_closed)
+	# Interstitial load callback
+	_interstitial_ad_load_callback = InterstitialAdLoadCallback.new()
+	_interstitial_ad_load_callback.on_ad_loaded = _on_interstitial_loaded
+	_interstitial_ad_load_callback.on_ad_failed_to_load = _on_interstitial_failed_to_load
 
-		# Initialize AdMob with test mode enabled for development
-		# Set to false for production builds
-		var is_test_mode: bool = true
-		_admob.initialize(is_test_mode)
-
-		print("[AdMob] Initialized successfully")
-
-		# Pre-load interstitial ad
+	# Interstitial full screen content callback
+	_full_screen_content_callback = FullScreenContentCallback.new()
+	_full_screen_content_callback.on_ad_clicked = func():
+		print("[AdMob] Interstitial clicked")
+	_full_screen_content_callback.on_ad_dismissed_full_screen_content = func():
+		print("[AdMob] Interstitial dismissed")
+		_destroy_interstitial()
+		emit_signal("interstitial_closed")
+		# Pre-load next interstitial
 		load_interstitial()
-	else:
-		_is_admob_available = false
-		print("[AdMob] Plugin not available - running in editor or unsupported platform")
+	_full_screen_content_callback.on_ad_failed_to_show_full_screen_content = func(ad_error: AdError):
+		print("[AdMob] Interstitial failed to show: ", ad_error.message)
+		emit_signal("interstitial_closed")
+	_full_screen_content_callback.on_ad_impression = func():
+		print("[AdMob] Interstitial impression")
+	_full_screen_content_callback.on_ad_showed_full_screen_content = func():
+		print("[AdMob] Interstitial showed")
 
 
 func get_banner_ad_unit_id() -> String:
@@ -78,72 +85,50 @@ func get_interstitial_ad_unit_id() -> String:
 
 
 # Banner Ad Functions
-func load_banner(position: int = BannerPosition.BOTTOM) -> void:
-	if not _is_admob_available:
-		print("[AdMob] Cannot load banner - AdMob not available")
-		return
+func load_banner(position: int = AdPosition.Values.BOTTOM) -> void:
+	# Destroy existing banner if any
+	if _ad_view:
+		_ad_view.destroy()
+		_ad_view = null
 
-	current_banner_position = position
-	var ad_unit_id = get_banner_ad_unit_id()
+	var ad_size = AdSize.get_current_orientation_anchored_adaptive_banner_ad_size(AdSize.FULL_WIDTH)
+	_ad_view = AdView.new(get_banner_ad_unit_id(), ad_size, position)
+	_ad_view.ad_listener = _ad_listener
 
-	# Position: TOP = 1, BOTTOM = 0 for the plugin
-	var pos = 1 if position == BannerPosition.TOP else 0
-	_admob.load_banner(ad_unit_id, pos)
+	var ad_request = AdRequest.new()
+	_ad_view.load_ad(ad_request)
 	print("[AdMob] Loading banner ad...")
 
 
 func show_banner() -> void:
-	if not _is_admob_available:
-		return
-
-	if _is_banner_loaded:
-		_admob.show_banner()
-		_banner_visible = true
+	if _ad_view:
+		_ad_view.show()
 		print("[AdMob] Showing banner")
-	else:
-		# Load and show when ready
-		load_banner(current_banner_position)
 
 
 func hide_banner() -> void:
-	if not _is_admob_available:
-		return
-
-	if _banner_visible:
-		_admob.hide_banner()
-		_banner_visible = false
+	if _ad_view:
+		_ad_view.hide()
 		print("[AdMob] Hiding banner")
 
 
 func destroy_banner() -> void:
-	if not _is_admob_available:
-		return
-
-	_admob.destroy_banner()
-	_is_banner_loaded = false
-	_banner_visible = false
-	print("[AdMob] Banner destroyed")
+	if _ad_view:
+		_ad_view.destroy()
+		_ad_view = null
+		print("[AdMob] Banner destroyed")
 
 
 # Interstitial Ad Functions
 func load_interstitial() -> void:
-	if not _is_admob_available:
-		print("[AdMob] Cannot load interstitial - AdMob not available")
-		return
-
-	var ad_unit_id = get_interstitial_ad_unit_id()
-	_admob.load_interstitial(ad_unit_id)
+	var loader = InterstitialAdLoader.new()
+	loader.load(get_interstitial_ad_unit_id(), AdRequest.new(), _interstitial_ad_load_callback)
 	print("[AdMob] Loading interstitial ad...")
 
 
 func show_interstitial() -> void:
-	if not _is_admob_available:
-		print("[AdMob] Cannot show interstitial - AdMob not available")
-		emit_signal("interstitial_closed")
-		return
-
-	if _is_interstitial_loaded:
-		_admob.show_interstitial()
+	if _interstitial_ad:
+		_interstitial_ad.show()
 		print("[AdMob] Showing interstitial")
 	else:
 		print("[AdMob] Interstitial not loaded yet")
@@ -153,47 +138,35 @@ func show_interstitial() -> void:
 
 
 func is_interstitial_loaded() -> bool:
-	return _is_interstitial_loaded
+	return _interstitial_ad != null
 
 
-func is_banner_loaded() -> bool:
-	return _is_banner_loaded
+func _destroy_interstitial() -> void:
+	if _interstitial_ad:
+		_interstitial_ad.destroy()
+		_interstitial_ad = null
 
 
-func is_admob_available() -> bool:
-	return _is_admob_available
-
-
-# Signal Callbacks
+# Banner Callbacks
 func _on_banner_loaded() -> void:
-	_is_banner_loaded = true
 	print("[AdMob] Banner loaded successfully")
 	emit_signal("banner_loaded")
-	# Auto-show banner when loaded
 	show_banner()
 
 
-func _on_banner_failed_to_load(error_code: int) -> void:
-	_is_banner_loaded = false
-	print("[AdMob] Banner failed to load. Error code: ", error_code)
-	emit_signal("banner_failed_to_load", error_code)
+func _on_banner_failed_to_load(load_ad_error: LoadAdError) -> void:
+	print("[AdMob] Banner failed to load: ", load_ad_error.message)
+	emit_signal("banner_failed_to_load", load_ad_error.message)
 
 
-func _on_interstitial_loaded() -> void:
-	_is_interstitial_loaded = true
+# Interstitial Callbacks
+func _on_interstitial_loaded(interstitial_ad: InterstitialAd) -> void:
 	print("[AdMob] Interstitial loaded successfully")
+	interstitial_ad.full_screen_content_callback = _full_screen_content_callback
+	_interstitial_ad = interstitial_ad
 	emit_signal("interstitial_loaded")
 
 
-func _on_interstitial_failed_to_load(error_code: int) -> void:
-	_is_interstitial_loaded = false
-	print("[AdMob] Interstitial failed to load. Error code: ", error_code)
-	emit_signal("interstitial_failed_to_load", error_code)
-
-
-func _on_interstitial_closed() -> void:
-	_is_interstitial_loaded = false
-	print("[AdMob] Interstitial closed")
-	emit_signal("interstitial_closed")
-	# Pre-load next interstitial
-	load_interstitial()
+func _on_interstitial_failed_to_load(load_ad_error: LoadAdError) -> void:
+	print("[AdMob] Interstitial failed to load: ", load_ad_error.message)
+	emit_signal("interstitial_failed_to_load", load_ad_error.message)

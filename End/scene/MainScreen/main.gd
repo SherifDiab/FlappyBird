@@ -17,7 +17,7 @@ func _ready():
 
 func _setup_banner_ad() -> void:
 	# Show banner ad at the bottom of the screen
-	AdMobManager.load_banner(AdMobManager.BannerPosition.BOTTOM)
+	AdMobManager.load_banner(AdPosition.Values.BOTTOM)
 
 func _on_gameover():
 	spawn_pipe_timer.stop()
