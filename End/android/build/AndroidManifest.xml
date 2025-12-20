@@ -22,5 +22,10 @@
             android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
             android:value="true" />
     </application>
+<!-- AdMob App ID - Using Google TEST ID for development -->
+<!-- Replace with your real App ID when your AdMob account is approved -->
+<meta-data
+    android:name="com.google.android.gms.ads.APPLICATION_ID"
+    android:value="ca-app-pub-3940256099942544~3347511713"/>
 
 </manifest>
