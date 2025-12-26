@@ -217,7 +217,7 @@ func _on_android_popupmenu_id_pressed(id: int):
 			var snippet := """<!-- Sample AdMob app ID: ca-app-pub-3940256099942544~3347511713 -->
 			<meta-data
 				android:name="com.google.android.gms.ads.APPLICATION_ID"
-				android:value="ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy"/>"""
+				android:value="ca-app-pub-6943563100853650~5902982140"/>"""
 
 			DisplayServer.clipboard_set(snippet)
 

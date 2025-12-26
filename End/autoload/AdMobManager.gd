@@ -13,9 +13,9 @@ signal interstitial_closed
 
 # Ad Unit IDs (Replace with your actual AdMob IDs for production)
 # These are test IDs provided by Google for development
-const BANNER_AD_UNIT_ID_ANDROID: String = "ca-app-pub-3940256099942544/6300978111"
+const BANNER_AD_UNIT_ID_ANDROID: String = "ca-app-pub-6943563100853650/3810353038"
 const BANNER_AD_UNIT_ID_IOS: String = "ca-app-pub-3940256099942544/2934735716"
-const INTERSTITIAL_AD_UNIT_ID_ANDROID: String = "ca-app-pub-3940256099942544/1033173712"
+const INTERSTITIAL_AD_UNIT_ID_ANDROID: String = "ca-app-pub-6943563100853650/2497271361"
 const INTERSTITIAL_AD_UNIT_ID_IOS: String = "ca-app-pub-3940256099942544/4411468910"
 
 # Ad references
