@@ -1,6 +1,6 @@
 # AdMob Integration Setup Guide
 
-This Jumping Bird game includes AdMob integration using the [poing-studios Godot AdMob Plugin](https://github.com/poing-studios/godot-admob-plugin).
+This Flappy Bird game includes AdMob integration using the [poing-studios Godot AdMob Plugin](https://github.com/poing-studios/godot-admob-plugin).
 
 ## Current Ad Configuration
 
